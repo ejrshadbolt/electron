@@ -1,0 +1,118 @@
+# Local, unsigned, arm64-only build against stock Electron. Generated from electron-builder.yml:
+# upstream builds against a patched Electron (electron-dist/) whose fuse wire carries three extra
+# fuses that stock Electron 44 rejects, so they are removed here; the ad-hoc signature is reset after
+# the remaining fuses are flipped, otherwise macOS refuses to launch the modified binary.
+appId: com.github.thaunknown.miru
+productName: Hayase
+electronFuses:
+  resetAdHocDarwinSignature: true
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+directories:
+  buildResources: build
+asarUnpack:
+  - resources/**
+  - out/main/native-assets/**/*.node
+  - out/main/native-modules/**/prebuilds/*/*.node
+files:
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.eslintignore,.eslintrc.js,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
+  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml,pnpm-workspace.yaml}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+  - "!node_modules/**/*.{mk,a,o,h,lib,tlog,cpp,c,vcxproj,vcxproj.filters,props,iobj,ipdb,pdb,exp,recipe,bare,map,ts,txt,cts}"
+  - "!node_modules/@thaunknown/yencode/crcutil-1.0/**"
+  - "!node_modules/@thaunknown/yencode/build/**"
+  - "!node_modules/utp-native/build/**"
+  - "!node_modules/utp-native/deps/**"
+  - "!node_modules/**/LICENSE"
+  - "!**/.eslintcache"
+  - "!**/.gitmodules"
+  - "!**/.gitattributes"
+  - "!**/*.md"
+  - "!eslint.config.mjs"
+  - "!electron-dist/*"
+  - "!resources/*"
+  - "!patches/*"
+win:
+  executableName: Hayase
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # signAndEditExecutable: true
+  verifyUpdateCodeSignature: false
+  artifactName: ${os}-${name}-${version}-installer.${ext}
+nsis:
+  artifactName: ${os}-${name}-${version}-installer.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  oneClick: false
+  perMachine: true
+  deleteAppDataOnUninstall: true
+  allowToChangeInstallationDirectory: true
+mac:
+  x64ArchFiles: "**/*.node"
+  artifactName: ${os}-${name}-${version}-mac.${ext}
+  entitlementsInherit: build/entitlements.mac.plist
+  defaultArch: arm64
+  category: public.app-category.video
+  darkModeSupport: true
+  hardenedRuntime: true
+  mergeASARs: true
+  extendInfo:
+    - NSCameraUsageDescription: Application requests access to the device's camera.
+    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+  identity: null
+  target:
+    - target: default
+      arch:
+        - universal
+linux:
+  artifactName: ${os}-${name}-${version}-linux.${ext}
+  icon: build/icon.icns
+  target:
+    - target: deb
+      arch:
+        - x64
+    # - target: pacman
+    #   arch:
+    #     - x64
+    # - target: rpm
+    #   arch:
+    #     - x64
+    - target: AppImage
+      arch:
+        - x64
+  maintainer: ThaUnknown
+  category: AudioVideo;Video
+  desktop:
+    entry:
+      Type: "Application"
+      Encoding: "UTF-8"
+      Name: "Hayase"
+      Comment: "Bittorrent streaming software for cats"
+      Keywords: "anime"
+      Terminal: "false"
+      MimeType: "x-scheme-handler/hayase;"
+npmRebuild: true
+publish:
+  provider: github
+  owner: hayase-app
+  repo: docs
+electronDist: node_modules/electron/dist
+protocols:
+  - name: hayase
+    schemes:
+      - hayase
+electronLanguages:
+  - en-US
