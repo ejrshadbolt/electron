@@ -18,6 +18,7 @@ import forkPath from './background/background.ts?modulePath'
 import Discord from './discord.ts'
 // import Protocol from './protocol.ts'
 import IPC from './ipc.ts'
+import { findLocalUi, serveLocalUi } from './local-ui.ts'
 import Plugins from './plugins.ts'
 import Protocol from './protocol.ts'
 import store from './store.ts'
@@ -296,12 +297,24 @@ export default class App {
     }
 
     if (is.dev) this.mainWindow.webContents.openDevTools()
-    this.mainWindow.loadURL(BASE_URL, { userAgent }).catch(err => {
+    const loadUi = () => this.mainWindow.loadURL(BASE_URL, { userAgent }).catch(err => {
       log.error(err)
       if (this.hasDOH) return
       this.setDOH('https://cloudflare-dns.com/dns-query')
       queueMicrotask(() => this.mainWindow.loadURL(BASE_URL, { userAgent }))
     })
+    // The fork ships its own UI build and serves it under BASE_URL's origin (see local-ui.ts). If no
+    // build is present the remote UI loads as before, and the log says so.
+    const localUi = findLocalUi()
+    if (localUi) {
+      serveLocalUi(localUi, this.mainWindow.webContents.session).then(loadUi, err => {
+        log.error('[local-ui] failed to serve the bundled UI, loading the remote UI instead:', err)
+        loadUi()
+      })
+    } else {
+      log.warn('[local-ui] no bundled UI build found, loading the remote UI')
+      loadUi()
+    }
     this.mainWindow.webContents.on('will-navigate', (e, url) => {
       const parsedUrl = new URL(url)
       if (parsedUrl.origin !== BASE_URL) {

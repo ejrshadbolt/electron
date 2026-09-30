@@ -10,6 +10,8 @@ const DEFAULTS = {
   player: '',
   torrentPath: '',
   doh: '',
+  // hash of the bundled UI build last served, so a new build drops the old service worker once (local-ui.ts)
+  localUiBuild: '',
   // transparency: false,
   torrentSettings: {
     torrentPersist: false,

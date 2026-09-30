@@ -39,6 +39,10 @@ files:
   - "!electron-dist/*"
   - "!resources/*"
   - "!patches/*"
+# The fork's own UI build (../interface, `pnpm build`), served by src/main/local-ui.ts from resources/ui.
+extraResources:
+  - from: ../interface/build
+    to: ui
 win:
   executableName: Hayase
   target:
