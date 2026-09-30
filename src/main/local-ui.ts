@@ -63,7 +63,7 @@ export async function serveLocalUi (root: string, ses: Session) {
 
   ses.protocol.handle('https', request => {
     const url = new URL(request.url)
-    if (url.host !== UI_HOST) return forward(request, url)
+    if (url.host !== UI_HOST) return forward(request)
     return serveFile(root, url.pathname)
   })
   log.info(`[local-ui] serving ${root} as https://${UI_HOST}/ (build ${build})`)
@@ -71,20 +71,24 @@ export async function serveLocalUi (root: string, ses: Session) {
 
 /**
  * Forwards a request the page made to another host. A request sent from the main process carries
- * none of the browser context a renderer attaches, and servers act on two of those headers: measured
- * 2026-10-01, hayase.ani.zip (the episode images) answers 403 without Referer and Origin and 200 with
- * them, so the episode cards went blank. Referer is the page, and Origin goes on every cross-origin
- * request and every non-GET, which is when a browser sends it. The request's own header object is
- * changed in place; rebuilding the Request would need the body handled again (measured: both a GET
- * and a POST with a JSON body arrive intact this way). The Sec-Fetch-* headers are left to the
- * network service. The session's webRequest listeners still run after this and can override.
+ * none of the browser context a renderer attaches, so the two headers a browser would send are set
+ * here, in place on the request (rebuilding it would mean handling the body again; measured: a GET
+ * and a POST with a JSON body both arrive intact this way).
+ *
+ * Referer goes on everything, as a browser sends it. Origin goes ONLY on non-GET requests, as a
+ * browser does for fetch() writes, and never on GETs: measured 2026-10-01, an Origin header makes the
+ * network layer enforce CORS on the response, and the cover image CDN (s4.anilist.co) answers with no
+ * CORS headers, so every show card went blank while Origin was set on GETs. The non-GET requests are
+ * API calls (AniList GraphQL, which answers with CORS headers). hayase.ani.zip, the episode images,
+ * answered 403 to a bare request once and 200 to the same request later, so that was Cloudflare
+ * being intermittent rather than a header rule; Referer is kept because a browser sends it.
+ * The session's webRequest listeners still run after this and can override anything set here.
  */
-function forward (request: Request, url: URL): Promise<Response> {
+function forward (request: Request): Promise<Response> {
   if (request.referrer && !request.headers.has('referer')) {
-    const page = new URL(request.referrer)
     request.headers.set('referer', request.referrer)
-    if (!request.headers.has('origin') && (url.origin !== page.origin || (request.method !== 'GET' && request.method !== 'HEAD'))) {
-      request.headers.set('origin', page.origin)
+    if (request.method !== 'GET' && request.method !== 'HEAD' && !request.headers.has('origin')) {
+      request.headers.set('origin', new URL(request.referrer).origin)
     }
   }
   return net.fetch(request, { bypassCustomProtocolHandlers: true })
