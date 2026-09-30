@@ -17,6 +17,15 @@ const flags: Array<[string, string | undefined] | [string]> = [
   ['enable-features', 'PlatformEncryptedDolbyVision,CanvasOopRasterization,ThrottleDisplayNoneAndVisibilityHiddenCrossOriginIframes,UseSkiaRenderer,WebAssemblyLazyCompilation,FluentOverlayScrollbar,FluentOverlayScrollbars,WindowsScrollingPersonality,AutoPictureInPictureForVideoPlayback'], // + (IS_LINUX ? ',Vulkan,VulkanFromANGLE' : '')
   // disabling shit widget layering aka right click context menus [I think] for macOS [I think]
   ['disable-features', 'WidgetLayering'], // ,MediaEngagementBypassAutoplayPolicies,PreloadMediaEngagementData,RecordMediaEngagementScores might not be good,
+  // HTMLMediaElement.audioTracks / videoTracks. Upstream used to enable this here and in the window's
+  // enableBlinkFeatures, then moved it into their private patched Electron build (b384bb6, "multi-track
+  // hack"). This local build runs stock Electron, where the API is off by default, so without this flag
+  // the player never sees a second audio track: no Audio menu, and no way to pick the Japanese track on
+  // dual-audio releases. A command-line switch rather than webPreferences because upstream noted the
+  // per-window setting is ignored when the first load is served by the UI's service worker under COEP.
+  // Chosen here, not ruled (2026-09-30). Measured on stock Electron 44.3.0 with a five-track MKV: the
+  // flag exposes every track Chromium can decode and switching between them works.
+  ['enable-blink-features', 'AudioVideoTracks'],
   // utility stuff, aka website security that's useless for a native app:
   ['autoplay-policy', 'no-user-gesture-required'], ['disable-notifications'], ['disable-logging'], ['disable-permissions-api'], ['no-zygote'],
   // bypasses W3C API permissions which require visiblity to run, IE local fonts, this DOES NOT disable background throttling and thus doesnt break pause on lost visibility
